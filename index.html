@@ -1,0 +1,68 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Date Me App</title>
+
+    <!-- 1. Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- 2. Leaflet Map CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- 3. Link to our custom styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- App Header -->
+        <header class="app-header">
+            <h1>🗓️ Schedule a Date</h1>
+            <p id="welcome-text">Loading user profile...</p>
+        </header>
+
+        <!-- Main Form -->
+        <form id="date-form" onsubmit="event.preventDefault();">
+
+            <!-- Target User Field -->
+            <div class="form-group">
+                <label for="receiver-username">Who do you want to invite?</label>
+                <input type="text" id="receiver-username" placeholder="e.g. @username" required>
+                <small>Enter their precise Telegram @username.</small>
+            </div>
+
+            <!-- Calendar / Time Picker -->
+            <div class="form-group">
+                <label for="date-time">When are you meeting?</label>
+                <input type="datetime-local" id="date-time" required>
+            </div>
+
+            <!-- Map Picker container -->
+            <div class="form-group">
+                <label>Set Location on Map</label>
+                <div id="map"></div>
+                <small class="map-hint">Drag the map to place the pin precisely on your venue.</small>
+
+                <!-- Hidden inputs to hold the coordinates for Supabase -->
+                <input type="hidden" id="latitude">
+                <input type="hidden" id="longitude">
+            </div>
+
+            <!-- Meeting Description Field -->
+            <div class="form-group">
+                <label for="description">Why are you meeting?</label>
+                <textarea id="description" rows="3" placeholder="e.g. Let's grab iced lattes and talk about building our mini app!" required></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="submit-btn" class="primary-btn">Send Invite Request</button>
+        </form>
+    </div>
+
+    <!-- 4. Link to our frontend application logic -->
+    <script src="app.js"></script>
+</body>
+</html>
