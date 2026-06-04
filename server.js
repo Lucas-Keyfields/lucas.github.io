@@ -1,10 +1,10 @@
-﻿const { createClient } = require('@supabase/supabase-js');
-const { Telegraf } = require('telegraf');
+const { createClient } = require('@supabase/supabase-js');
+const { Telegraf } = require('8838017546:AAH1N_ReEVXfkIFHKYEzf4i9pWdAXFzivdc');
 
 // 1. Initialize your Bot and your Supabase connection
 const BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'; // From @BotFather
 const SUPABASE_URL = 'https://YOUR_SUPABASE_URL.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = 'YOUR_SUPABASE_SERVICE_ROLE_KEY'; // Found in Settings -> API (Scroll down to Service Role)
+const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4YXZkZndhZGJ3bmpxdmJjZndzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDM3NTc2OCwiZXhwIjoyMDk1OTUxNzY4fQ.h6sIPSywpwa7WyOyO7XBuqFSbYlM2H3ITQQ4ufy3ntI'; // Found in Settings -> API (Scroll down to Service Role)
 
 const bot = new Telegraf(BOT_TOKEN);
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
