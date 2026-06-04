@@ -1,8 +1,8 @@
-﻿// ==========================================
+// ==========================================
 // 1. DATABASE CONFIGURATION (SUPABASE)
 // ==========================================
 // Paste the unique connection links you generated in your dashboard here:
-const SUPABASE_URL = "https://kxavdfwadbwnjqvbcfws.supabase.co/rest/v1/";
+const SUPABASE_URL = "https://kxavdfwadbwnjqvbcfws.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4YXZkZndhZGJ3bmpxdmJjZndzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNzU3NjgsImV4cCI6MjA5NTk1MTc2OH0.lwRtbTj1CHI_wk7dLU5_87Bzj1Ejk8DquRJB6PL4uB8";
 
 // ==========================================
