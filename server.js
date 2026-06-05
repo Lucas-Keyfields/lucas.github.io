@@ -1,3 +1,15 @@
+const http = require('http');
+
+// 💡 FIX: This reads Render's hidden environment port and exposes it to the public internet ('0.0.0.0')
+const PORT = process.env.PORT || 3000;
+
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot Engine is Awake and Running Perfectly!\n');
+}).listen(PORT, '0.0.0.0', () => {
+    console.log(`🤖 Render health-check port successfully activated on port ${PORT}`);
+});
+
 const { createClient } = require('@supabase/supabase-js');
 const { Telegraf } = require('telegraf');
 
