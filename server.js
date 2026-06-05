@@ -58,7 +58,7 @@ bot.start((ctx) => {
                     {
                         text: "🗓️ Create Meeting Invite",
                         // ⚠️ Remember to change 'your-username' to your exact GitHub user handle!
-                        web_app: { url: "https://your-username.github.io/date-me-app/" }
+                        web_app: { url: "https://lucas-keyfields.github.io/lucas.github.io/" }
                     }
                 ]
             ]
