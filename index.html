@@ -1,68 +1,73 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Date Me App</title>
 
-    <!-- 1. Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <!-- 2. Leaflet Map CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- 3. Link to our custom styles -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="app-container">
-        <!-- App Header -->
+    <div class="app-container" style="padding-bottom: 80px;">
         <header class="app-header">
             <h1>🗓️ Schedule a Date</h1>
             <p id="welcome-text">Loading user profile...</p>
         </header>
 
-        <!-- Main Form -->
-        <form id="date-form" onsubmit="event.preventDefault();">
+        <div id="request-tab" class="tab-content">
+            <form id="date-form" onsubmit="event.preventDefault();">
 
-            <!-- Target User Field -->
-            <div class="form-group">
-                <label for="receiver-username">Who do you want to invite?</label>
-                <input type="text" id="receiver-username" placeholder="e.g. @username" required>
-                <small>Enter their precise Telegram @username.</small>
-            </div>
+                <div class="form-group">
+                    <label for="receiver-username">Who do you want to invite?</label>
+                    <input type="text" id="receiver-username" placeholder="e.g. @username" required>
+                    <small>Enter their precise Telegram @username.</small>
+                </div>
 
-            <!-- Calendar / Time Picker -->
-            <div class="form-group">
-                <label for="date-time">When are you meeting?</label>
-                <input type="datetime-local" id="date-time" required>
-            </div>
+                <div class="form-group">
+                    <label for="date-time">When are you meeting?</label>
+                    <input type="datetime-local" id="date-time" required>
+                </div>
 
-            <!-- Map Picker container -->
-            <div class="form-group">
-                <label>Set Location on Map</label>
-                <div id="map"></div>
-                <small class="map-hint">Drag the map to place the pin precisely on your venue.</small>
+                <div class="form-group">
+                    <label>Set Location on Map</label>
+                    <div id="map"></div>
+                    <small class="map-hint">Drag the map to place the pin precisely on your venue.</small>
 
-                <!-- Hidden inputs to hold the coordinates for Supabase -->
-                <input type="hidden" id="latitude">
-                <input type="hidden" id="longitude">
-            </div>
+                    <input type="hidden" id="latitude">
+                    <input type="hidden" id="longitude">
+                </div>
 
-            <!-- Meeting Description Field -->
-            <div class="form-group">
-                <label for="description">Why are you meeting?</label>
-                <textarea id="description" rows="3" placeholder="e.g. Let's grab iced lattes and talk about building our mini app!" required></textarea>
-            </div>
+                <div class="form-group">
+                    <label for="description">Why are you meeting?</label>
+                    <textarea id="description" rows="3" placeholder="e.g. Let's grab iced lattes and talk about building our mini app!" required></textarea>
+                </div>
 
-            <!-- Submit Button -->
-            <button type="submit" id="submit-btn" class="primary-btn">Send Invite Request</button>
-        </form>
+                <button type="submit" id="submit-btn" class="primary-btn">Send Invite Request</button>
+            </form>
+        </div>
+
+        <div id="list-tab" class="tab-content" style="display: none; padding-top: 10px;">
+            <h2 style="color: #fff; font-size: 1.3em; margin-bottom: 15px; border-bottom: 1px solid #222; padding-bottom: 8px;">📋 Your Scheduled Appointments</h2>
+            <div id="appointments-loading" style="color: #888; text-align: center; margin: 20px 0;">Fetching your database records...</div>
+            <div id="appointments-container"></div>
+        </div>
     </div>
 
-    <!-- 4. Link to our frontend application logic -->
+    <div class="bottom-nav" style="position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: #111; border-top: 1px solid #222; display: flex; justify-content: space-around; align-items: center; z-index: 9999; box-shadow: 0 -4px 10px rgba(0,0,0,0.5);">
+        <button id="nav-request-btn" style="background: none; border: none; color: #4ade80; font-weight: bold; font-size: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+            <span>📍</span> New Request
+        </button>
+        <button id="nav-list-btn" style="background: none; border: none; color: #888; font-weight: bold; font-size: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+            <span>📋</span> My Invites
+        </button>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
