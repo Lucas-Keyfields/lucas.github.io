@@ -53,16 +53,29 @@ supabase
             }
 
             try {
-                // 🚀 DELIVER VIA NUMERIC CHAT ID (Guaranteed to work by Telegram privacy laws!)
+                // 🚀 DELIVER VIA NUMERIC CHAT ID with an embedded Web App button!
                 await bot.telegram.sendMessage(
                     targetChatId,
                     `🔔 *You have a new Date Invitation!*\n\n` +
                     `📝 *Why:* "${description}"\n` +
                     `⏳ *When:* ${dateTime}\n\n` +
-                    `Open the app layout via your bot to view the location details!`,
-                    { parse_mode: 'Markdown' }
+                    `👉 Tap the button below to open the map layout and view the location details!`,
+                    { 
+                        parse_mode: 'Markdown',
+                        // 💡 ADDED: This embeds a custom interactive button underneath the text notification
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: "🗺️ View Meeting Location Map",
+                                        web_app: { url: "https://lucas-keyfields.github.io/lucas.github.io/" }
+                                    }
+                                ]
+                            ]
+                        }
+                    }
                 );
-                console.log(`✅ Notification successfully delivered to Chat ID: ${targetChatId} (@${targetUsername})`);
+                console.log(`✅ Notification with Map link successfully delivered to Chat ID: ${targetChatId} (@${targetUsername})`);
             } catch (err) {
                 console.error(`❌ Telegram API delivery failed for Chat ID ${targetChatId}:`, err.message);
             }
