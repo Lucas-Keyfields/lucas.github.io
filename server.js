@@ -11,6 +11,9 @@ const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3Mi
 const bot = new Telegraf(BOT_TOKEN);
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+// 💡 Memory object to map active Telegram @usernames to their numeric Chat IDs
+const userCache = {};
+
 console.log("🤖 Notification bot server is running and watching for date requests...");
 
 // ==========================================
@@ -25,29 +28,43 @@ supabase
             const newMeeting = payload.new;
             console.log("📅 New meeting detected in DB! Preparing notification...");
 
-            const targetUsername = newMeeting.receiver_username.replace('@', '');
+            const targetUsername = newMeeting.receiver_username.replace('@', '').trim().toLowerCase();
             const description = newMeeting.description;
             const dateTime = new Date(newMeeting.date_time).toLocaleString();
-            const senderId = newMeeting.sender_id;
+            const senderId = newMeeting.sender_id; // Your numeric Telegram ID string (e.g., "5302699060")
+
+            // 🎯 DECIDE WHERE TO SEND THE MESSAGE:
+            let targetChatId = null;
+
+            // Look up the cached username first
+            if (userCache[targetUsername]) {
+                targetChatId = userCache[targetUsername];
+            } 
+            // 💡 SELF-TEST FALLBACK: If you send an invite to yourself, route it right back to your sender_id number!
+            else if (targetUsername === "soewaiyanoo") {
+                targetChatId = senderId;
+            }
+
+            if (!targetChatId) {
+                console.error(`⚠️ Could not send direct message to @${targetUsername} automatically.`);
+                console.error(`💡 Reason: The bot hasn't recorded a numeric Chat ID for this user yet. They need to send /start to the bot first.`);
+                console.error(`👉 Data row is safely saved in Supabase! Sender: ${senderId}, Target: @${targetUsername}`);
+                return;
+            }
 
             try {
-                // IMPORTANT NOTE: Since bots cannot DM users by @username directly without a prior chat history,
-                // we send a clean confirmation fallback link inside your server logger console.
-                // If you have the receiver's chat_id stored, replace `@${targetUsername}` with the variable.
-
+                // 🚀 DELIVER VIA NUMERIC CHAT ID (Guaranteed to work by Telegram privacy laws!)
                 await bot.telegram.sendMessage(
-                    `@${targetUsername}`,
+                    targetChatId,
                     `🔔 *You have a new Date Invitation!*\n\n` +
                     `📝 *Why:* "${description}"\n` +
                     `⏳ *When:* ${dateTime}\n\n` +
                     `Open the app layout via your bot to view the location details!`,
                     { parse_mode: 'Markdown' }
                 );
-                console.log(`✅ Notification successfully sent to @${targetUsername}`);
+                console.log(`✅ Notification successfully delivered to Chat ID: ${targetChatId} (@${targetUsername})`);
             } catch (err) {
-                console.error(`⚠️ Could not send direct message to @${targetUsername} automatically.`);
-                console.error(`💡 Reason: Telegram bots cannot message usernames directly due to privacy laws unless the user clicks /start first.`);
-                console.error(`👉 Data row is safely saved in Supabase! Sender: ${senderId}, Target: @${targetUsername}`);
+                console.error(`❌ Telegram API delivery failed for Chat ID ${targetChatId}:`, err.message);
             }
         }
     )
@@ -57,6 +74,16 @@ supabase
 // 3. HANDLER FOR NEW USERS TYPE /START
 // ==========================================
 bot.start((ctx) => {
+    const chatId = ctx.chat.id;
+    const username = ctx.from.username;
+
+    // Save their details into the system memory cache when they hit start
+    if (username) {
+        const cleanUsername = username.trim().toLowerCase();
+        userCache[cleanUsername] = chatId;
+        console.log(`💾 Map Cached: @${username} ➔ ${chatId}`);
+    }
+
     ctx.reply('Welcome to the Date Me App! Click the button below to schedule your event on Google Maps.', {
         reply_markup: {
             inline_keyboard: [
