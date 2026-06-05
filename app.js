@@ -232,7 +232,21 @@ async function loadAppointmentsFromDb() {
     loadingText.style.display = 'block';
 
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/meetings?sender_id=eq.${userA_Id}&order=date_time.desc`, {
+        // 💡 Get current user's username safely to match against the receiver_username column
+        let currentUsername = "";
+        if (tg && tg.initDataUnsafe?.user?.username) {
+            currentUsername = `@${tg.initDataUnsafe.user.username}`;
+        }
+
+        // 💡 CRITICAL FIX: Query rows where sender_id matches OR receiver_username matches!
+        // We use %28 and %29 to URL-encode parentheses: or=(sender_id.eq.XYZ,receiver_username.eq.ABC)
+        let queryUrl = `${SUPABASE_URL}/rest/v1/meetings?or=(sender_id.eq.${userA_Id}`;
+        if (currentUsername) {
+            queryUrl += `,receiver_username.eq.${encodeURIComponent(currentUsername)}`;
+        }
+        queryUrl += `)&order=date_time.desc`;
+
+        const response = await fetch(queryUrl, {
             method: 'GET',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -254,13 +268,27 @@ async function loadAppointmentsFromDb() {
 
         data.forEach(meet => {
             const dateStr = new Date(meet.date_time).toLocaleString();
+            
+            // 💡 NEW: Check if this row is Outward (Sent) or Inward (Received)
+            const isSentByMe = String(meet.sender_id) === String(userA_Id);
+            const directionBadge = isSentByMe ? "📤 Sent Invitation" : "📥 Received Invitation";
+            const targetLabel = isSentByMe ? `To: ${meet.receiver_username}` : `From Sender ID: ${meet.sender_id}`;
+
             const card = document.createElement('div');
             card.className = 'appointment-card';
+            
+            // We visually color-code the direction badge so users can tell them apart instantly
+            const badgeColor = isSentByMe ? "var(--tg-theme-button-color, #2481cc)" : "#4ade80";
+
             card.innerHTML = `
-                <h4>Invited User: ${meet.receiver_username}</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; font-weight: bold; padding: 3px 8px; background: ${badgeColor}; color: #fff; border-radius: 20px;">${directionBadge}</span>
+                    <span style="color: #fbbf24; font-weight: bold; font-size: 13px;">${meet.status.toUpperCase()}</span>
+                </div>
+                <h4>${targetLabel}</h4>
                 <p><strong>📝 Reason:</strong> "${meet.description}"</p>
                 <p><strong>🕒 Scheduled:</strong> ${dateStr}</p>
-                <p><strong>📍 Status:</strong> <span style="color: #fbbf24; font-weight: bold;">${meet.status.toUpperCase()}</span></p>
+                
                 <button class="view-details-btn" style="margin-top: 10px; width: 100%; padding: 10px; background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer;">
                     🔍 View Full Details
                 </button>
@@ -272,23 +300,21 @@ async function loadAppointmentsFromDb() {
                 const targetLng = parseFloat(meet.longitude);
 
                 if (!isNaN(targetLat) && !isNaN(targetLng) && requestTab && listTab && detailsTab) {
-                    // 💡 CRITICAL: Open the separate Read-Only details panel layout tab!
                     requestTab.style.display = 'none';
                     listTab.style.display = 'none';
                     detailsTab.style.display = 'block';
 
-                    // Inject values inside the read-only information container
                     const infoCard = document.getElementById('detailed-info-card');
                     if (infoCard) {
                         infoCard.innerHTML = `
-                            <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">👤 Recipient:</strong> ${meet.receiver_username}</p>
+                            <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">📬 Type:</strong> ${directionBadge}</p>
+                            <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">👤 Party:</strong> ${isSentByMe ? meet.receiver_username : 'Someone invited you'}</p>
                             <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">🕒 Date/Time:</strong> ${dateStr}</p>
                             <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">📝 Description:</strong> "${meet.description}"</p>
                             <p style="margin-bottom:0; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">⚡ Appointment Status:</strong> <span style="color: #fbbf24; font-weight: bold;">${meet.status.toUpperCase()}</span></p>
                         `;
                     }
 
-                    // Boot separate static view map layer
                     setTimeout(() => {
                         detailsMap.invalidateSize();
                         detailsMap.setView([targetLat, targetLng], 16);
