@@ -146,12 +146,15 @@ document.getElementById('submit-btn').addEventListener('click', async function (
                 alert(`🎉 Success! Your invite was sent to ${formattedReceiver}.`);
             }
         } else {
-            const errorDetails = await response.json();
-            console.error("Supabase error payload back:", errorDetails);
+            // Read the exact error message text straight from Supabase
+            const errorText = await response.text();
+            console.error("Supabase Error Details:", errorText);
+            
+            // Show the raw database error on your screen so we can see it!
             if (tg) {
-                tg.showAlert("Failed to connect to database cloud. Check your configuration keys.");
+                tg.showAlert(`❌ Database Error: ${errorText}`);
             } else {
-                alert("Failed to connect to database cloud. Check your configuration keys.");
+                alert(`❌ Database Error: ${errorText}`);
             }
         }
     } catch (error) {
