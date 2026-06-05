@@ -123,17 +123,20 @@ document.getElementById('submit-btn').addEventListener('click', async function (
     };
 
     // Execute direct safe payload injection row request to cloud cluster API endpoints
-    try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/meetings`, {
-            method: 'POST',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify(payload)
-        });
+        try {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/meetings`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal',
+                    // 💡 CRITICAL FIX: Forces Supabase to look into your real 'public' table schema!
+                    'Content-Profile': 'public',
+                    'Accept-Profile': 'public'
+                },
+                body: JSON.stringify(payload)
+            });
 
         if (response.ok) {
             // Success status confirmed! Close the app or notify user
