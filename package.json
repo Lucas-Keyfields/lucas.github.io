@@ -1,6 +1,15 @@
 {
-  "dependencies": {
-    "@supabase/supabase-js": "^2.107.0",
-    "telegraf": "^4.16.3"
+  "name": "dateme-backend",
+  "version": "1.0.0",
+  "description": "Telegram Mini App Backend Engine",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+
+  {
+    "dependencies": {
+      "@supabase/supabase-js": "^2.107.0",
+      "telegraf": "^4.16.3"
+    }
   }
-}
