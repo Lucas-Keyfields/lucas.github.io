@@ -9,7 +9,6 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // ==========================================
 const tg = window.Telegram?.WebApp;
 
-// Create clean safe fallback variables so it NEVER crashes outside of Telegram
 let userA_Id = "999999";
 let userA_FirstName = "Guest User";
 
@@ -17,8 +16,6 @@ if (tg) {
     try {
         tg.ready();
         tg.expand();
-
-        // Safely extract Telegram data if it exists inside the framework
         if (tg.initDataUnsafe?.user) {
             userA_Id = tg.initDataUnsafe.user.id || "999999";
             userA_FirstName = tg.initDataUnsafe.user.first_name || "Guest User";
@@ -28,8 +25,13 @@ if (tg) {
     }
 }
 
-// Inject a personalized welcome title into the application layout header card safely
+// Global elements references
 const welcomeElement = document.getElementById('welcome-text');
+const navRequestBtn = document.getElementById('nav-request-btn');
+const navListBtn = document.getElementById('nav-list-btn');
+const requestTab = document.getElementById('request-tab');
+const listTab = document.getElementById('list-tab');
+
 if (welcomeElement) {
     if (tg && tg.initDataUnsafe?.user) {
         const username = tg.initDataUnsafe.user.username;
@@ -46,23 +48,17 @@ let map;
 let marker;
 
 function initGoogleMapView() {
-    // Default position coordinate view center array point (Defaults near Yangon center)
     const defaultPosition = [16.8409, 96.1735];
-
-    // Create the core map viewer container object
     map = L.map('map').setView(defaultPosition, 13);
 
-    // Inject the official Google Maps clean vector map tile skin matrix directly
     L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
         maxZoom: 20,
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
         attribution: 'Map data © <a href="https://maps.google.com">Google Maps</a>'
     }).addTo(map);
 
-    // Create a striking, draggable meeting location pinpoint marker
-    marker = L.marker(defaultPosition, { draggable: true }).addTo(markerLayerGroup(map));
+    marker = L.marker(defaultPosition, { draggable: true }).addTo(L.layerGroup().addTo(map));
 
-    // Listen to where the user drags the marker map pin and record coordinate arrays
     updateHiddenCoordinates(defaultPosition[0], defaultPosition[1]);
 
     marker.on('dragend', function (event) {
@@ -72,46 +68,34 @@ function initGoogleMapView() {
 }
 
 function updateHiddenCoordinates(lat, lng) {
-    document.getElementById('latitude').value = lat;
-    document.getElementById('longitude').value = lng;
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    if (latInput) latInput.value = lat;
+    if (lngInput) lngInput.value = lng;
 }
 
-// Utility wrapper helper to clean up marker object layers onto map arrays cleanly
-function markerLayerGroup(mapObject) {
-    const layerGroup = L.layerGroup().addTo(mapObject);
-    return layerGroup;
-}
-
-// Spin up the visual map engine framework instantly on script evaluation
 initGoogleMapView();
 
 // ==========================================
 // 4. SUBMIT ARRAY ROW PAYLOAD TO SUPABASE
 // ==========================================
-document.getElementById('submit-btn').addEventListener('click', async function (e) {
+document.getElementById('date-form')?.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    // Select form data structures out of DOM nodes
     const receiverUsernameInput = document.getElementById('receiver-username').value.trim();
     const dateTimeValue = document.getElementById('date-time').value;
     const latitudeValue = parseFloat(document.getElementById('latitude').value);
     const longitudeValue = parseFloat(document.getElementById('longitude').value);
     const descriptionValue = document.getElementById('description').value.trim();
 
-    // Basic form validation protection check gates
     if (!receiverUsernameInput || !dateTimeValue || !descriptionValue) {
-        if (tg) {
-            tg.showAlert("Please completely fill out all fields before sending the invitation request.");
-        } else {
-            alert("Please completely fill out all fields before sending the invitation request.");
-        }
+        if (tg) tg.showAlert("Please completely fill out all fields before sending the invitation request.");
+        else alert("Please completely fill out all fields before sending the invitation request.");
         return;
     }
 
-    // Standardize text format username elements safely
     const formattedReceiver = receiverUsernameInput.startsWith('@') ? receiverUsernameInput : `@${receiverUsernameInput}`;
 
-    // Build standard multi-user data payload block array row
     const payload = {
         sender_id: String(userA_Id),
         receiver_username: formattedReceiver,
@@ -122,7 +106,6 @@ document.getElementById('submit-btn').addEventListener('click', async function (
         status: "pending"
     };
 
-    // Execute direct safe payload injection row request to cloud cluster API endpoints
     try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/meetings`, {
             method: 'POST',
@@ -131,7 +114,6 @@ document.getElementById('submit-btn').addEventListener('click', async function (
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                 'Content-Type': 'application/json',
                 'Prefer': 'return=minimal',
-                // 💡 CRITICAL FIX: Forces Supabase to look into your real 'public' table schema!
                 'Content-Profile': 'public',
                 'Accept-Profile': 'public'
             },
@@ -139,34 +121,20 @@ document.getElementById('submit-btn').addEventListener('click', async function (
         });
 
         if (response.ok) {
-            // Success status confirmed! Close the app or notify user
             if (tg) {
                 tg.showAlert(`🎉 Success! Your invite was sent to ${formattedReceiver}.`);
-                setTimeout(() => {
-                    tg.close();
-                }, 1000);
+                setTimeout(() => { tg.close(); }, 1000);
             } else {
                 alert(`🎉 Success! Your invite was sent to ${formattedReceiver}.`);
             }
         } else {
-            // Read the exact error message text straight from Supabase
             const errorText = await response.text();
-            console.error("Supabase Error Details:", errorText);
-
-            // Show the raw database error on your screen so we can see it!
-            if (tg) {
-                tg.showAlert(`❌ Database Error: ${errorText}`);
-            } else {
-                alert(`❌ Database Error: ${errorText}`);
-            }
+            if (tg) tg.showAlert(`❌ Database Error: ${errorText}`);
+            else alert(`❌ Database Error: ${errorText}`);
         }
     } catch (error) {
-        console.error("Network communication failure:", error);
-        if (tg) {
-            tg.showAlert("Network offline or cloud database rejected server transaction.");
-        } else {
-            alert("Network offline or cloud database rejected server transaction.");
-        }
+        if (tg) tg.showAlert("Network offline or cloud database rejected server transaction.");
+        else alert("Network offline or cloud database rejected server transaction.");
     }
 });
 
@@ -180,20 +148,15 @@ function checkReceiverMode() {
     const descParam = urlParams.get('desc');
     const timeParam = urlParams.get('time');
 
-    // If coordinates exist in the URL link, we are in "View Mode" (The Receiver is opening it)
     if (latParam && lngParam) {
         const targetLat = parseFloat(latParam);
         const targetLng = parseFloat(lngParam);
 
-        // 1. Move the map and pin to the actual meeting location spot
         map.setView([targetLat, targetLng], 16);
         marker.setLatLng([targetLat, targetLng]);
-        marker.dragging.disable(); // Lock the pin so the receiver can't accidentally drag it away
+        marker.dragging.disable();
 
-        // 2. Hide the request inputs and navigation bar because they only need to view details
-        const requestTab = document.getElementById('request-tab');
         if (requestTab) {
-            // Hide everything in the form except the map container itself
             const formGroups = requestTab.querySelectorAll('.form-group');
             formGroups.forEach(group => {
                 if (!group.contains(document.getElementById('map'))) {
@@ -203,12 +166,10 @@ function checkReceiverMode() {
             const submitBtn = document.getElementById('submit-btn');
             if (submitBtn) submitBtn.style.display = 'none';
         }
-
-        // Hide bottom navigation tabs while viewing a specific location link
+        
         const bottomNav = document.querySelector('.bottom-nav');
         if (bottomNav) bottomNav.style.display = 'none';
 
-        // 3. Update the welcome layout text to show the meeting details clearly
         if (welcomeElement) {
             welcomeElement.innerHTML = `
                 <div style="background: rgba(36, 129, 204, 0.1); padding: 14px; border-radius: 10px; border: 1px solid var(--tg-theme-button-color, #2481cc); margin-bottom: 5px;">
@@ -221,41 +182,25 @@ function checkReceiverMode() {
     }
 }
 
-// Run the check immediately when the website loads up
 checkReceiverMode();
 
 // ==========================================
 // 6. LAYOUT NAVIGATION MANAGER (TAB SWITCHING)
 // ==========================================
-const navRequestBtn = document.getElementById('nav-request-btn');
-const navListBtn = document.getElementById('nav-list-btn');
-const requestTab = document.getElementById('request-tab');
-const listTab = document.getElementById('list-tab');
-
 if (navRequestBtn && navListBtn && requestTab && listTab) {
-    // Switch to Request Form Layout
     navRequestBtn.addEventListener('click', () => {
         requestTab.style.display = 'block';
         listTab.style.display = 'none';
-
-        // Highlight active layout button indicator using native colors
         navRequestBtn.style.color = 'var(--tg-theme-button-color, #2481cc)';
         navListBtn.style.color = 'var(--tg-theme-hint-color, #8e8e93)';
-
-        // Refresh Leaflet map layout sizing because it was hidden in the background
         setTimeout(() => { map.invalidateSize(); }, 100);
     });
 
-    // Switch to Appointment List Layout
     navListBtn.addEventListener('click', () => {
         requestTab.style.display = 'none';
         listTab.style.display = 'block';
-
-        // Highlight active layout button indicator using native colors
         navRequestBtn.style.color = 'var(--tg-theme-hint-color, #8e8e93)';
         navListBtn.style.color = 'var(--tg-theme-button-color, #2481cc)';
-
-        // Trigger real-time data pull from Supabase Cloud Cluster
         loadAppointmentsFromDb();
     });
 }
@@ -264,14 +209,13 @@ if (navRequestBtn && navListBtn && requestTab && listTab) {
 async function loadAppointmentsFromDb() {
     const container = document.getElementById('appointments-container');
     const loadingText = document.getElementById('appointments-loading');
-
+    
     if (!container || !loadingText) return;
-
+    
     container.innerHTML = '';
     loadingText.style.display = 'block';
 
     try {
-        // Query database filtering rows belonging to current user session safely
         const response = await fetch(`${SUPABASE_URL}/rest/v1/meetings?sender_id=eq.${userA_Id}&order=date_time.desc`, {
             method: 'GET',
             headers: {
@@ -282,7 +226,7 @@ async function loadAppointmentsFromDb() {
             }
         });
 
-        if (!response.ok) throw new Error("Database rejected query matrix fetch.");
+        if (!response.ok) throw new Error("Database query matrix fetch failed.");
 
         const data = await response.json();
         loadingText.style.display = 'none';
@@ -292,54 +236,46 @@ async function loadAppointmentsFromDb() {
             return;
         }
 
-        // Loop array values out of REST body payloads into structural block layouts
-        // Loop array values out of REST body payloads into structural block layouts
         data.forEach(meet => {
             const dateStr = new Date(meet.date_time).toLocaleString();
             const card = document.createElement('div');
             card.className = 'appointment-card';
-            
-            // 💡 UPDATED: Added a unique look to the card and an actionable button at the bottom
             card.innerHTML = `
                 <h4>Target User: ${meet.receiver_username}</h4>
                 <p><strong>📝 Reason:</strong> "${meet.description}"</p>
                 <p><strong>🕒 Scheduled:</strong> ${dateStr}</p>
                 <p><strong>📍 Status:</strong> <span style="color: #fbbf24; font-weight: bold;">${meet.status.toUpperCase()}</span></p>
-                
-                <button class="view-map-btn" style="margin-top: 10px; width: 100%; padding: 8px; background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
+                <button class="view-map-btn" style="margin-top: 10px; width: 100%; padding: 10px; background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer;">
                     📍 View on Map
                 </button>
             `;
 
-            // 💡 NEW: Attach a click listener to the button to jump back to the map view!
             const viewBtn = card.querySelector('.view-map-btn');
             viewBtn.addEventListener('click', () => {
                 const targetLat = parseFloat(meet.latitude);
                 const targetLng = parseFloat(meet.longitude);
 
-                if (!isNaN(targetLat) && !isNaN(targetLng)) {
-                    // 1. Switch visually back to the Request Tab containing the map view
+                if (!isNaN(targetLat) && !isNaN(targetLng) && requestTab && listTab && navRequestBtn && navListBtn) {
+                    // Switch tabs safely
                     requestTab.style.display = 'block';
                     listTab.style.display = 'none';
                     navRequestBtn.style.color = 'var(--tg-theme-button-color, #2481cc)';
                     navListBtn.style.color = 'var(--tg-theme-hint-color, #8e8e93)';
 
-                    // 2. Snap the Leaflet map and marker pin precisely onto this saved location
                     setTimeout(() => {
-                        map.invalidateSize(); // Reset bounds
+                        map.invalidateSize();
                         map.setView([targetLat, targetLng], 16);
                         marker.setLatLng([targetLat, targetLng]);
                         
-                        // 3. Temporarily populate the text areas with this card's details so you can see it
-                        document.getElementById('receiver-username').value = meet.receiver_username;
-                        document.getElementById('description').value = meet.description;
+                        const nameField = document.getElementById('receiver-username');
+                        const descField = document.getElementById('description');
+                        if (nameField) nameField.value = meet.receiver_username;
+                        if (descField) descField.value = meet.description;
                         
-                        // Scroll up smoothly to the top of the map view container
                         window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }, 150);
+                    }, 100);
                 } else {
-                    if (tg) tg.showAlert("Error: This row does not contain valid coordinate arrays.");
-                    else alert("Error: This row does not contain valid coordinate arrays.");
+                    alert("Error processing saved row coordinates.");
                 }
             });
 
