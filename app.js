@@ -273,7 +273,11 @@ async function loadAppointmentsFromDb() {
             // 💡 NEW: Check if this row is Outward (Sent) or Inward (Received)
             const isSentByMe = String(meet.sender_id) === String(userA_Id);
             const directionBadge = isSentByMe ? "📤 Sent Invitation" : "📥 Received Invitation";
-            const targetLabel = isSentByMe ? `To: ${meet.receiver_username}` : `From Sender ID: ${meet.sender_id}`;
+            
+            // 💡 FIX: If you received the invitation, show their first name instead of their ID!
+            // Falls back to "Someone" if it's an old database record created before this update.
+            const senderReadableName = meet.sender_name || "Someone"; 
+            const targetLabel = isSentByMe ? `To: ${meet.receiver_username}` : `From: ${senderReadableName}`;
 
             const card = document.createElement('div');
             card.className = 'appointment-card';
