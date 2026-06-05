@@ -25,12 +25,14 @@ if (tg) {
     }
 }
 
-// Global elements references
+// Global UI Elements references
 const welcomeElement = document.getElementById('welcome-text');
 const navRequestBtn = document.getElementById('nav-request-btn');
 const navListBtn = document.getElementById('nav-list-btn');
 const requestTab = document.getElementById('request-tab');
 const listTab = document.getElementById('list-tab');
+const detailsTab = document.getElementById('details-tab');
+const backToListBtn = document.getElementById('back-to-list-btn');
 
 if (welcomeElement) {
     if (tg && tg.initDataUnsafe?.user) {
@@ -42,29 +44,34 @@ if (welcomeElement) {
 }
 
 // ==========================================
-// 3. INITIALIZE FREE GOOGLE MAPS LAYER ENGINE
+// 3. INITIALIZE FREE MAP LAYERS ENGINE
 // ==========================================
-let map;
-let marker;
+let map, marker;
+let detailsMap, detailsMarker; // Dedicated map elements for layout view
 
-function initGoogleMapView() {
+function initMaps() {
     const defaultPosition = [16.8409, 96.1735];
+    
+    // 🗺️ Map 1: The Request Creation Form Map
     map = L.map('map').setView(defaultPosition, 13);
-
     L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-        maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-        attribution: 'Map data © <a href="https://maps.google.com">Google Maps</a>'
+        maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: 'Map data © Google Maps'
     }).addTo(map);
-
-    marker = L.marker(defaultPosition, { draggable: true }).addTo(L.layerGroup().addTo(map));
-
+    marker = L.marker(defaultPosition, { draggable: true }).addTo(map);
     updateHiddenCoordinates(defaultPosition[0], defaultPosition[1]);
-
-    marker.on('dragend', function (event) {
-        const position = marker.getLatLng();
-        updateHiddenCoordinates(position.lat, position.lng);
+    marker.on('dragend', function () {
+        const pos = marker.getLatLng();
+        updateHiddenCoordinates(pos.lat, pos.lng);
     });
+
+    // 🗺️ Map 2: The Dedicated Details Viewer Map (Locked/Static Pin)
+    detailsMap = L.map('details-map').setView(defaultPosition, 13);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: 'Map data © Google Maps'
+    }).addTo(detailsMap);
+    detailsMarker = L.marker(defaultPosition, { draggable: false }).addTo(detailsMap);
 }
 
 function updateHiddenCoordinates(lat, lng) {
@@ -74,7 +81,7 @@ function updateHiddenCoordinates(lat, lng) {
     if (lngInput) lngInput.value = lng;
 }
 
-initGoogleMapView();
+initMaps();
 
 // ==========================================
 // 4. SUBMIT ARRAY ROW PAYLOAD TO SUPABASE
@@ -187,10 +194,11 @@ checkReceiverMode();
 // ==========================================
 // 6. LAYOUT NAVIGATION MANAGER (TAB SWITCHING)
 // ==========================================
-if (navRequestBtn && navListBtn && requestTab && listTab) {
+if (navRequestBtn && navListBtn && requestTab && listTab && detailsTab) {
     navRequestBtn.addEventListener('click', () => {
         requestTab.style.display = 'block';
         listTab.style.display = 'none';
+        detailsTab.style.display = 'none';
         navRequestBtn.style.color = 'var(--tg-theme-button-color, #2481cc)';
         navListBtn.style.color = 'var(--tg-theme-hint-color, #8e8e93)';
         setTimeout(() => { map.invalidateSize(); }, 100);
@@ -199,9 +207,17 @@ if (navRequestBtn && navListBtn && requestTab && listTab) {
     navListBtn.addEventListener('click', () => {
         requestTab.style.display = 'none';
         listTab.style.display = 'block';
+        detailsTab.style.display = 'none';
         navRequestBtn.style.color = 'var(--tg-theme-hint-color, #8e8e93)';
         navListBtn.style.color = 'var(--tg-theme-button-color, #2481cc)';
         loadAppointmentsFromDb();
+    });
+
+    // Back to List interaction link logic
+    backToListBtn?.addEventListener('click', () => {
+        requestTab.style.display = 'none';
+        listTab.style.display = 'block';
+        detailsTab.style.display = 'none';
     });
 }
 
@@ -241,37 +257,42 @@ async function loadAppointmentsFromDb() {
             const card = document.createElement('div');
             card.className = 'appointment-card';
             card.innerHTML = `
-                <h4>Target User: ${meet.receiver_username}</h4>
+                <h4>Invited User: ${meet.receiver_username}</h4>
                 <p><strong>📝 Reason:</strong> "${meet.description}"</p>
                 <p><strong>🕒 Scheduled:</strong> ${dateStr}</p>
                 <p><strong>📍 Status:</strong> <span style="color: #fbbf24; font-weight: bold;">${meet.status.toUpperCase()}</span></p>
-                <button class="view-map-btn" style="margin-top: 10px; width: 100%; padding: 10px; background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer;">
-                    📍 View on Map
+                <button class="view-details-btn" style="margin-top: 10px; width: 100%; padding: 10px; background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer;">
+                    🔍 View Full Details
                 </button>
             `;
 
-            const viewBtn = card.querySelector('.view-map-btn');
+            const viewBtn = card.querySelector('.view-details-btn');
             viewBtn.addEventListener('click', () => {
                 const targetLat = parseFloat(meet.latitude);
                 const targetLng = parseFloat(meet.longitude);
 
-                if (!isNaN(targetLat) && !isNaN(targetLng) && requestTab && listTab && navRequestBtn && navListBtn) {
-                    // Switch tabs safely
-                    requestTab.style.display = 'block';
+                if (!isNaN(targetLat) && !isNaN(targetLng) && requestTab && listTab && detailsTab) {
+                    // 💡 CRITICAL: Open the separate Read-Only details panel layout tab!
+                    requestTab.style.display = 'none';
                     listTab.style.display = 'none';
-                    navRequestBtn.style.color = 'var(--tg-theme-button-color, #2481cc)';
-                    navListBtn.style.color = 'var(--tg-theme-hint-color, #8e8e93)';
+                    detailsTab.style.display = 'block';
 
+                    // Inject values inside the read-only information container
+                    const infoCard = document.getElementById('detailed-info-card');
+                    if (infoCard) {
+                        infoCard.innerHTML = `
+                            <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">👤 Recipient:</strong> ${meet.receiver_username}</p>
+                            <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">🕒 Date/Time:</strong> ${dateStr}</p>
+                            <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">📝 Description:</strong> "${meet.description}"</p>
+                            <p style="margin-bottom:0; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">⚡ Appointment Status:</strong> <span style="color: #fbbf24; font-weight: bold;">${meet.status.toUpperCase()}</span></p>
+                        `;
+                    }
+
+                    // Boot separate static view map layer
                     setTimeout(() => {
-                        map.invalidateSize();
-                        map.setView([targetLat, targetLng], 16);
-                        marker.setLatLng([targetLat, targetLng]);
-                        
-                        const nameField = document.getElementById('receiver-username');
-                        const descField = document.getElementById('description');
-                        if (nameField) nameField.value = meet.receiver_username;
-                        if (descField) descField.value = meet.description;
-                        
+                        detailsMap.invalidateSize();
+                        detailsMap.setView([targetLat, targetLng], 16);
+                        detailsMarker.setLatLng([targetLat, targetLng]);
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                     }, 100);
                 } else {
