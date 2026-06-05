@@ -108,3 +108,49 @@ small {
         transform: scale(0.98);
         opacity: 0.9;
     }
+
+/* ==========================================
+   💡 NEW ADDITIONS: TABS & APPOINTMENT CARDS
+   ========================================== */
+
+/* Appointment Container Cards Layout */
+.appointment-card {
+    background-color: var(--tg-theme-secondary-bg-color, #ffffff);
+    border: 1px solid var(--tg-theme-hint-color, rgba(0, 0, 0, 0.15));
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+    .appointment-card h4 {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--tg-theme-text-color, #000000);
+        margin-bottom: 8px;
+    }
+
+    .appointment-card p {
+        font-size: 14px;
+        color: var(--tg-theme-text-color, #222222);
+        margin-bottom: 6px;
+    }
+
+        .appointment-card p strong {
+            color: var(--tg-theme-hint-color, #777777);
+            font-weight: 600;
+        }
+
+/* Modern Bottom Navigation Styles */
+.bottom-nav {
+    background-color: var(--tg-theme-secondary-bg-color, #ffffff) !important;
+    border-top: 1px solid var(--tg-theme-hint-color, rgba(0, 0, 0, 0.15)) !important;
+}
+
+    .bottom-nav button {
+        transition: color 0.2s ease, transform 0.1s ease;
+    }
+
+        .bottom-nav button:active {
+            transform: scale(0.95);
+        }
