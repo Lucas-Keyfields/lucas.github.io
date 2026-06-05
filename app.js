@@ -293,16 +293,56 @@ async function loadAppointmentsFromDb() {
         }
 
         // Loop array values out of REST body payloads into structural block layouts
+        // Loop array values out of REST body payloads into structural block layouts
         data.forEach(meet => {
             const dateStr = new Date(meet.date_time).toLocaleString();
             const card = document.createElement('div');
             card.className = 'appointment-card';
+            
+            // 💡 UPDATED: Added a unique look to the card and an actionable button at the bottom
             card.innerHTML = `
                 <h4>Target User: ${meet.receiver_username}</h4>
                 <p><strong>📝 Reason:</strong> "${meet.description}"</p>
                 <p><strong>🕒 Scheduled:</strong> ${dateStr}</p>
                 <p><strong>📍 Status:</strong> <span style="color: #fbbf24; font-weight: bold;">${meet.status.toUpperCase()}</span></p>
+                
+                <button class="view-map-btn" style="margin-top: 10px; width: 100%; padding: 8px; background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #fff); border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">
+                    📍 View on Map
+                </button>
             `;
+
+            // 💡 NEW: Attach a click listener to the button to jump back to the map view!
+            const viewBtn = card.querySelector('.view-map-btn');
+            viewBtn.addEventListener('click', () => {
+                const targetLat = parseFloat(meet.latitude);
+                const targetLng = parseFloat(meet.longitude);
+
+                if (!isNaN(targetLat) && !isNaN(targetLng)) {
+                    // 1. Switch visually back to the Request Tab containing the map view
+                    requestTab.style.display = 'block';
+                    listTab.style.display = 'none';
+                    navRequestBtn.style.color = 'var(--tg-theme-button-color, #2481cc)';
+                    navListBtn.style.color = 'var(--tg-theme-hint-color, #8e8e93)';
+
+                    // 2. Snap the Leaflet map and marker pin precisely onto this saved location
+                    setTimeout(() => {
+                        map.invalidateSize(); // Reset bounds
+                        map.setView([targetLat, targetLng], 16);
+                        marker.setLatLng([targetLat, targetLng]);
+                        
+                        // 3. Temporarily populate the text areas with this card's details so you can see it
+                        document.getElementById('receiver-username').value = meet.receiver_username;
+                        document.getElementById('description').value = meet.description;
+                        
+                        // Scroll up smoothly to the top of the map view container
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }, 150);
+                } else {
+                    if (tg) tg.showAlert("Error: This row does not contain valid coordinate arrays.");
+                    else alert("Error: This row does not contain valid coordinate arrays.");
+                }
+            });
+
             container.appendChild(card);
         });
 
