@@ -105,6 +105,7 @@ document.getElementById('date-form')?.addEventListener('submit', async function 
 
     const payload = {
         sender_id: String(userA_Id),
+        sender_name: String(userA_FirstName), // 💡 NEW: Uploads their human-readable first name (e.g. "Kyaw")
         receiver_username: formattedReceiver,
         date_time: new Date(dateTimeValue).toISOString(),
         latitude: latitudeValue,
