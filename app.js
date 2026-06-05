@@ -1,23 +1,43 @@
 // ==========================================
 // 1. DATABASE CONFIGURATION (SUPABASE)
 // ==========================================
-// Paste the unique connection links you generated in your dashboard here:
 const SUPABASE_URL = "https://kxavdfwadbwnjqvbcfws.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4YXZkZndhZGJ3bmpxdmJjZndzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNzU3NjgsImV4cCI6MjA5NTk1MTc2OH0.lwRtbTj1CHI_wk7dLU5_87Bzj1Ejk8DquRJB6PL4uB8";
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-// ==========================================
-// 2. INITIALIZE TELEGRAM WEB APP CONTEXT
-// ==========================================
-const tg = window.Telegram.WebApp;
-tg.ready(); // Alerts Telegram that the UI successfully painted
-tg.expand(); // Maximizes the Mini App screen window view for easier layout handling
 
-// Grab the authenticated user data profile elements cleanly
-const userA_Id = tg.initDataUnsafe?.user?.id || "999999"; // Fallback test ID if debugging in a standard web browser
-const userA_FirstName = tg.initDataUnsafe?.user?.first_name || "Guest User";
+// ==========================================
+// 2. INITIALIZE TELEGRAM WEB APP CONTEXT Safely
+// ==========================================
+const tg = window.Telegram?.WebApp;
 
-// Inject a personalized welcome title into the application header card
-document.getElementById('welcome-text').innerText = `Hello, ${userA_FirstName}! Arrange your custom appointment details below.`;
+// Create clean safe fallback variables so it NEVER crashes outside of Telegram
+let userA_Id = "999999";
+let userA_FirstName = "Guest User";
+
+if (tg) {
+    try {
+        tg.ready();
+        tg.expand();
+
+        // Safely extract Telegram data if it exists inside the framework
+        if (tg.initDataUnsafe?.user) {
+            userA_Id = tg.initDataUnsafe.user.id || "999999";
+            userA_FirstName = tg.initDataUnsafe.user.first_name || "Guest User";
+        }
+    } catch (e) {
+        console.error("Telegram WebApp initialization failed:", e);
+    }
+}
+
+// Inject a personalized welcome title into the application layout header card safely
+const welcomeElement = document.getElementById('welcome-text');
+if (welcomeElement) {
+    if (tg && tg.initDataUnsafe?.user) {
+        const username = tg.initDataUnsafe.user.username;
+        welcomeElement.innerText = `Hello, ${userA_FirstName}! (@${username || 'NoUsername'}) Arrange your custom appointment details below.`;
+    } else {
+        welcomeElement.innerText = `Testing Mode: Hello, ${userA_FirstName}! Arrange your custom appointment details below.`;
+    }
+}
 
 // ==========================================
 // 3. INITIALIZE FREE GOOGLE MAPS LAYER ENGINE
@@ -36,7 +56,7 @@ function initGoogleMapView() {
     L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
         maxZoom: 20,
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-        attribution: 'Map data &copy; <a href="https://maps.google.com">Google Maps</a>'
+        attribution: 'Map data © <a href="https://maps.google.com">Google Maps</a>'
     }).addTo(map);
 
     // Create a striking, draggable meeting location pinpoint marker
@@ -80,7 +100,11 @@ document.getElementById('submit-btn').addEventListener('click', async function (
 
     // Basic form validation protection check gates
     if (!receiverUsernameInput || !dateTimeValue || !descriptionValue) {
-        tg.showAlert("Please completely fill out all fields before sending the invitation request.");
+        if (tg) {
+            tg.showAlert("Please completely fill out all fields before sending the invitation request.");
+        } else {
+            alert("Please completely fill out all fields before sending the invitation request.");
+        }
         return;
     }
 
@@ -113,17 +137,29 @@ document.getElementById('submit-btn').addEventListener('click', async function (
 
         if (response.ok) {
             // Success status confirmed! Close the app or notify user
-            tg.showAlert(`🎉 Success! Your invite was sent to ${formattedReceiver}.`);
-            setTimeout(() => {
-                tg.close(); // Closes the app window viewport inside the user's Telegram frame automatically
-            }, 1000);
+            if (tg) {
+                tg.showAlert(`🎉 Success! Your invite was sent to ${formattedReceiver}.`);
+                setTimeout(() => {
+                    tg.close();
+                }, 1000);
+            } else {
+                alert(`🎉 Success! Your invite was sent to ${formattedReceiver}.`);
+            }
         } else {
             const errorDetails = await response.json();
             console.error("Supabase error payload back:", errorDetails);
-            tg.showAlert("Failed to connect to database cloud. Check your configuration keys.");
+            if (tg) {
+                tg.showAlert("Failed to connect to database cloud. Check your configuration keys.");
+            } else {
+                alert("Failed to connect to database cloud. Check your configuration keys.");
+            }
         }
     } catch (error) {
         console.error("Network communication failure:", error);
-        tg.showAlert("Network offline or cloud database rejected server transaction.");
+        if (tg) {
+            tg.showAlert("Network offline or cloud database rejected server transaction.");
+        } else {
+            alert("Network offline or cloud database rejected server transaction.");
+        }
     }
 });
