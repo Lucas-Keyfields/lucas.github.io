@@ -123,20 +123,20 @@ document.getElementById('submit-btn').addEventListener('click', async function (
     };
 
     // Execute direct safe payload injection row request to cloud cluster API endpoints
-        try {
-            const response = await fetch(`${SUPABASE_URL}/rest/v1/meetings`, {
-                method: 'POST',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal',
-                    // 💡 CRITICAL FIX: Forces Supabase to look into your real 'public' table schema!
-                    'Content-Profile': 'public',
-                    'Accept-Profile': 'public'
-                },
-                body: JSON.stringify(payload)
-            });
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/meetings`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal',
+                // 💡 CRITICAL FIX: Forces Supabase to look into your real 'public' table schema!
+                'Content-Profile': 'public',
+                'Accept-Profile': 'public'
+            },
+            body: JSON.stringify(payload)
+        });
 
         if (response.ok) {
             // Success status confirmed! Close the app or notify user
@@ -152,7 +152,7 @@ document.getElementById('submit-btn').addEventListener('click', async function (
             // Read the exact error message text straight from Supabase
             const errorText = await response.text();
             console.error("Supabase Error Details:", errorText);
-            
+
             // Show the raw database error on your screen so we can see it!
             if (tg) {
                 tg.showAlert(`❌ Database Error: ${errorText}`);
@@ -169,3 +169,145 @@ document.getElementById('submit-btn').addEventListener('click', async function (
         }
     }
 });
+
+// ==========================================
+// 5. RECEIVER MODE LAYER: PARSE INCOMING URL LINKS
+// ==========================================
+function checkReceiverMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const latParam = urlParams.get('lat');
+    const lngParam = urlParams.get('lng');
+    const descParam = urlParams.get('desc');
+    const timeParam = urlParams.get('time');
+
+    // If coordinates exist in the URL link, we are in "View Mode" (The Receiver is opening it)
+    if (latParam && lngParam) {
+        const targetLat = parseFloat(latParam);
+        const targetLng = parseFloat(lngParam);
+
+        // 1. Move the map and pin to the actual meeting location spot
+        map.setView([targetLat, targetLng], 16);
+        marker.setLatLng([targetLat, targetLng]);
+        marker.dragging.disable(); // Lock the pin so the receiver can't accidentally drag it away
+
+        // 2. Hide the request inputs and navigation bar because they only need to view details
+        const requestTab = document.getElementById('request-tab');
+        if (requestTab) {
+            // Hide everything in the form except the map container itself
+            const formGroups = requestTab.querySelectorAll('.form-group');
+            formGroups.forEach(group => {
+                if (!group.contains(document.getElementById('map'))) {
+                    group.style.display = 'none';
+                }
+            });
+            const submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) submitBtn.style.display = 'none';
+        }
+
+        // Hide bottom navigation tabs while viewing a specific location link
+        const bottomNav = document.querySelector('.bottom-nav');
+        if (bottomNav) bottomNav.style.display = 'none';
+
+        // 3. Update the welcome layout text to show the meeting details clearly
+        if (welcomeElement) {
+            welcomeElement.innerHTML = `
+                <div style="background: rgba(36, 129, 204, 0.1); padding: 14px; border-radius: 10px; border: 1px solid var(--tg-theme-button-color, #2481cc); margin-bottom: 5px;">
+                    <h3 style="color: var(--tg-theme-text-color, #000000); font-size: 16px; margin-bottom: 8px;">📅 Invitation Details</h3>
+                    <p style="font-size: 14px; margin-bottom: 4px;"><strong>🕒 When:</strong> ${decodeURIComponent(timeParam || 'Not specified')}</p>
+                    <p style="font-size: 14px; margin-bottom: 0;"><strong>📝 Note:</strong> "${decodeURIComponent(descParam || 'No description provided')}"</p>
+                </div>
+            `;
+        }
+    }
+}
+
+// Run the check immediately when the website loads up
+checkReceiverMode();
+
+// ==========================================
+// 6. LAYOUT NAVIGATION MANAGER (TAB SWITCHING)
+// ==========================================
+const navRequestBtn = document.getElementById('nav-request-btn');
+const navListBtn = document.getElementById('nav-list-btn');
+const requestTab = document.getElementById('request-tab');
+const listTab = document.getElementById('list-tab');
+
+if (navRequestBtn && navListBtn && requestTab && listTab) {
+    // Switch to Request Form Layout
+    navRequestBtn.addEventListener('click', () => {
+        requestTab.style.display = 'block';
+        listTab.style.display = 'none';
+
+        // Highlight active layout button indicator using native colors
+        navRequestBtn.style.color = 'var(--tg-theme-button-color, #2481cc)';
+        navListBtn.style.color = 'var(--tg-theme-hint-color, #8e8e93)';
+
+        // Refresh Leaflet map layout sizing because it was hidden in the background
+        setTimeout(() => { map.invalidateSize(); }, 100);
+    });
+
+    // Switch to Appointment List Layout
+    navListBtn.addEventListener('click', () => {
+        requestTab.style.display = 'none';
+        listTab.style.display = 'block';
+
+        // Highlight active layout button indicator using native colors
+        navRequestBtn.style.color = 'var(--tg-theme-hint-color, #8e8e93)';
+        navListBtn.style.color = 'var(--tg-theme-button-color, #2481cc)';
+
+        // Trigger real-time data pull from Supabase Cloud Cluster
+        loadAppointmentsFromDb();
+    });
+}
+
+// Fetch user data rows straight from Supabase endpoint REST layers
+async function loadAppointmentsFromDb() {
+    const container = document.getElementById('appointments-container');
+    const loadingText = document.getElementById('appointments-loading');
+
+    if (!container || !loadingText) return;
+
+    container.innerHTML = '';
+    loadingText.style.display = 'block';
+
+    try {
+        // Query database filtering rows belonging to current user session safely
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/meetings?sender_id=eq.${userA_Id}&order=date_time.desc`, {
+            method: 'GET',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Profile': 'public',
+                'Accept-Profile': 'public'
+            }
+        });
+
+        if (!response.ok) throw new Error("Database rejected query matrix fetch.");
+
+        const data = await response.json();
+        loadingText.style.display = 'none';
+
+        if (data.length === 0) {
+            container.innerHTML = `<p style="color: var(--tg-theme-hint-color, #8e8e93); text-align: center; margin-top: 30px; font-size: 14px;">No scheduled appointments found.</p>`;
+            return;
+        }
+
+        // Loop array values out of REST body payloads into structural block layouts
+        data.forEach(meet => {
+            const dateStr = new Date(meet.date_time).toLocaleString();
+            const card = document.createElement('div');
+            card.className = 'appointment-card';
+            card.innerHTML = `
+                <h4>Target User: ${meet.receiver_username}</h4>
+                <p><strong>📝 Reason:</strong> "${meet.description}"</p>
+                <p><strong>🕒 Scheduled:</strong> ${dateStr}</p>
+                <p><strong>📍 Status:</strong> <span style="color: #fbbf24; font-weight: bold;">${meet.status.toUpperCase()}</span></p>
+            `;
+            container.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error("Failed loading rows:", error);
+        loadingText.innerText = "❌ Failed loading lists from cloud storage parameters.";
+    }
+}
