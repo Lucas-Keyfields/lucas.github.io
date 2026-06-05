@@ -313,7 +313,7 @@ async function loadAppointmentsFromDb() {
                     if (infoCard) {
                         infoCard.innerHTML = `
                             <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">📬 Type:</strong> ${directionBadge}</p>
-                            <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">👤 Party:</strong> ${isSentByMe ? meet.receiver_username : 'Someone invited you'}</p>
+                            <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">👤 Party:</strong> ${isSentByMe ? meet.receiver_username : 'From ' + (meet.sender_name || 'Someone')}</p>
                             <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">🕒 Date/Time:</strong> ${dateStr}</p>
                             <p style="margin-bottom:8px; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">📝 Description:</strong> "${meet.description}"</p>
                             <p style="margin-bottom:0; font-size:15px;"><strong style="color:var(--tg-theme-hint-color, #888);">⚡ Appointment Status:</strong> <span style="color: #fbbf24; font-weight: bold;">${meet.status.toUpperCase()}</span></p>
